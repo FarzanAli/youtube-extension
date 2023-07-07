@@ -1,0 +1,15 @@
+{
+    "name": "some extension",
+    "description": "some desc",
+    "version": "1.0",
+    "manifest_version": 3,
+    "permissions": [
+        "tabs"
+    ],
+    "content_scripts": [
+        {
+            "matches": ["https://www.youtube.com/*"],
+            "js": ["content-script/index.js"]
+        }
+    ]
+}
