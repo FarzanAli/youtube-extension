@@ -1,2 +1,6 @@
 .main-container{
+    width: 250px;
+    height: 400px;
+    background-color: rgba(0, 0, 0, 0.2);
+    border-radius: 8px 0px 0px 8px;
 }
