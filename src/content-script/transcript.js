@@ -34,7 +34,7 @@ export async function getTranscriptHTML(link, videoId) {
 	const rawTranscript = await getRawTranscript(link);
 	const transcript = document.createElement('parsed-transcript');
 	transcript.innerHTML = rawTranscript;
-	console.log(Array.from(transcript.children[0].children).map((textDiv, index) => {
+	return Array.from(transcript.children[0].children).map((textDiv, index) => {
 		// var elem = document.createElement('textarea');
 		// elem.innerHTML = textDiv.innerHTML;
 		// var decoded = elem.value;
@@ -43,6 +43,6 @@ export async function getTranscriptHTML(link, videoId) {
 			duration: textDiv.getAttribute('dur'),
 			text: textDiv.textContent
 		}
-	}))
+	})
   
   }
