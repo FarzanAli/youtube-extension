@@ -12,7 +12,7 @@ window.onload = () => {
             if (oldHref !== document.location.href && window.location.search.includes("v=")) {
                 oldHref = document.location.href;
                 console.log('injecting')
-                if(document.getElementById('initial-div')){
+                if (document.getElementById('initial-div')) {
                     document.getElementById('initial-div').remove()
                 }
                 injectOverlay();
@@ -23,9 +23,9 @@ window.onload = () => {
 }
 
 const injectOverlay = () => {
-    waitForElm('.html5-video-container').then(() => {
-        document.querySelector('.html5-video-container').insertAdjacentHTML("beforeend", `
-            <div id="initial-div" style="display: none; overflow: hidden; position: absolute; z-index: 1111; width: 100vw; height: 100vh; right: 0">
+    waitForElm('#player-wide-container').then(() => {
+        document.querySelector('#player-wide-container').insertAdjacentHTML("afterBegin", `
+            <div id="initial-div" style="display: none; overflow: hidden; position: absolute; z-index: 1111; right: 0">
                 <div style="display: flex; justify-content: right;">
                     <div id="react-target" style="margin-top: 100px"></div>
                 </div>
@@ -66,17 +66,18 @@ function Overlay() {
         duration: '',
         text: ''
     });
+    let searchParam = {}
 
     useEffect(() => {
-        const videoId = getSearchParam(window.location.href).v
-        const langOptionsWithLink = getLangOptionsWithLink(videoId);
+        searchParam = getSearchParam(window.location.href)
+        const langOptionsWithLink = getLangOptionsWithLink(searchParam.v);
         if (!langOptionsWithLink) {
             return;
         }
         langOptionsWithLink.then(async (res) => {
             // const rawTranscript = await getRawTranscript(res[0].link)
             if (res) {
-                const transcriptHTML = await getTranscriptHTML(res[0].link, videoId);
+                const transcriptHTML = await getTranscriptHTML(res[0].link, searchParam.v);
                 setTranscript(transcriptHTML)
 
                 waitForElm('.transcript-container').then(() => {
@@ -96,15 +97,24 @@ function Overlay() {
                 }
                 else {
                     document.getElementById('initial-div').style.display = "none"
-    
+
                 }
             });
         })
     }, [url])
 
+    waitForElm('copy-button').then(() => {
+        var inputField = document.getElementById('copy-button');
+
+        inputField.addEventListener('mouseover', function () {  
+            inputField.focus();
+        });
+    })
+
     return (
         <div className='main-container'>
-            <button onClick={() => copyTranscript(transcript)}>COPYYYY</button>
+            <button id="copy-button" style={{ width: '100px', zIndex: '20000' }} onClick={() => copyTranscript(transcript, searchParam)}>COPYYYY</button>
+            {/* <button onClick={() => sendToChatGPT(transcript)}>ChatGPTTT</button> */}
             <div className='transcript-container'>
                 {/* {Array.from(transcript).map((obj, index) => {
                 return (
@@ -138,10 +148,12 @@ function getSearchParam(str) {
 
 }
 
-const copyTranscript = (transcript) => {
+const copyTranscript = (transcript, searchParam) => {
+    console.log('here')
     const fullTranscript = document.createElement('full-transcript')
-    fullTranscript.innerHTMsL = Array.from(transcript).map((obj, index) => {
+    fullTranscript.innerHTML = Array.from(transcript).map((obj, index) => {
         return `${obj.text}`
-    }).join("")
-    let str = fullTranscript.innerHTML.replaceAll(/(\n|&nbsp;)/g, ' ')
+    }).join(" ")
+    let str = `https://www.youtube.com/watch?v=${searchParam.v}` + "\n" + document.title + "\n\n" + fullTranscript.innerHTML.replaceAll(/(\n|&nbsp;)/g, ' ')
+    // navigator.clipboard.writeText(str);
 }
