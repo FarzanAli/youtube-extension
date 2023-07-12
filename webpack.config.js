@@ -5,6 +5,7 @@ const CopyPlugin = require('copy-webpack-plugin');
 module.exports = {
     entry: {
         'content-script/index': path.join(__dirname, 'src','content-script','index.jsx'),
+        'background': path.join(__dirname, "src", "background.js"),
     },
     output: {
         path: path.join(__dirname, 'dist'),

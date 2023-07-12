@@ -2,16 +2,17 @@ import React, { useEffect, useState } from 'react';
 import ReactDOM from 'react-dom/client';
 import '../css/index.css';
 import { getRawTranscript, getTranscriptHTML, getLangOptionsWithLink } from './transcript';
-
+import { Words } from './words';
 let oldHref = ""
-
+const words = Words();
 window.onload = () => {
+    // console.log('on load')
+    if(window.location.hostname === "www.youtube.com"){
     const bodyList = document.querySelector("body");
     let observer = new MutationObserver((mutations) => {
         mutations.forEach((mutation) => {
             if (oldHref !== document.location.href && window.location.search.includes("v=")) {
                 oldHref = document.location.href;
-                console.log('injecting')
                 if (document.getElementById('initial-div')) {
                     document.getElementById('initial-div').remove()
                 }
@@ -20,6 +21,27 @@ window.onload = () => {
         });
     });
     observer.observe(bodyList, { childList: true, subtree: true });
+    }
+    if (window.location.hostname === "chat.openai.com") {
+        if (document.getElementsByTagName("textarea")[0]) {
+            document.getElementsByTagName("textarea")[0].focus();
+            // If search query is "?ref=glasp"
+            if (window.location.search === "?ref=test") {
+                // get prompt from background.js
+                chrome.runtime.sendMessage({ message: "getPrompt" }, (response) => {
+                    
+                    document.getElementsByTagName("textarea")[0].value = response.prompt;
+                    if (response.prompt !== "") {
+                        console.log(response)
+                        document.getElementsByTagName("textarea")[0].focus();
+                        document.getElementsByTagName("button")[document.getElementsByTagName("button").length-1].click();
+                    }
+                });
+            }
+        }
+    }
+
+
 }
 
 const injectOverlay = () => {
@@ -60,48 +82,6 @@ function waitForElm(selector) {
 }
 
 function Overlay() {
-    const [url, setUrl] = useState(window.location.href);
-    const [transcript, setTranscript] = useState({
-        start: '',
-        duration: '',
-        text: ''
-    });
-    let searchParam = {}
-
-    useEffect(() => {
-        searchParam = getSearchParam(window.location.href)
-        const langOptionsWithLink = getLangOptionsWithLink(searchParam.v);
-        if (!langOptionsWithLink) {
-            return;
-        }
-        langOptionsWithLink.then(async (res) => {
-            // const rawTranscript = await getRawTranscript(res[0].link)
-            if (res) {
-                const transcriptHTML = await getTranscriptHTML(res[0].link, searchParam.v);
-                setTranscript(transcriptHTML)
-
-                waitForElm('.transcript-container').then(() => {
-                    document.querySelector('.transcript-container').innerHTML = Array.from(transcriptHTML).map((obj, index) => {
-                        return `
-                        <div className='transcript-line'>
-                            ${obj.text}
-                        </div>
-                    `
-                    }).join("")
-                })
-            }
-        }).then(() => {
-            document.addEventListener("fullscreenchange", function (event) {
-                if (document.fullscreenElement) {
-                    document.getElementById('initial-div').style.display = "block"
-                }
-                else {
-                    document.getElementById('initial-div').style.display = "none"
-
-                }
-            });
-        })
-    }, [url])
 
     waitForElm('copy-button').then(() => {
         var inputField = document.getElementById('copy-button');
@@ -113,8 +93,8 @@ function Overlay() {
 
     return (
         <div className='main-container'>
-            <button id="copy-button" style={{ width: '100px', zIndex: '20000' }} onClick={() => copyTranscript(transcript, searchParam)}>COPYYYY</button>
-            {/* <button onClick={() => sendToChatGPT(transcript)}>ChatGPTTT</button> */}
+            <button id="copy-button" onClick={() => copyTranscript(transcript, searchParam, false)}>COPYYYY</button>
+            <button onClick={() => sendToChatGPT(transcript, searchParam)}>ChatGPTTT</button>
             <div className='transcript-container'>
                 {/* {Array.from(transcript).map((obj, index) => {
                 return (
@@ -148,12 +128,23 @@ function getSearchParam(str) {
 
 }
 
-const copyTranscript = (transcript, searchParam) => {
-    console.log('here')
+const sendToChatGPT = (transcript, searchParam) => {
+    const prompt = copyTranscript(transcript, searchParam, true)
+    setTimeout(() => {
+        console.log(prompt)
+        chrome.runtime.sendMessage({ message: "setPrompt", prompt: prompt });
+        window.open("https://chat.openai.com/chat?ref=test", "_blank");
+    }, 500);
+}
+
+const copyTranscript = (transcript, searchParam, get) => {
     const fullTranscript = document.createElement('full-transcript')
     fullTranscript.innerHTML = Array.from(transcript).map((obj, index) => {
         return `${obj.text}`
     }).join(" ")
-    let str = `https://www.youtube.com/watch?v=${searchParam.v}` + "\n" + document.title + "\n\n" + fullTranscript.innerHTML.replaceAll(/(\n|&nbsp;)/g, ' ')
-    // navigator.clipboard.writeText(str);
+    let str = `https://www.youtube.com/watch?v=${searchParam.v}` + "\n" + document.title + "\n\n" + "\"" + fullTranscript.innerHTML.replaceAll(/(\n|&nbsp;)/g, ' ') + "\""
+    if(get){
+        return str
+    }
+    navigator.clipboard.writeText(str);
 }
